@@ -7,6 +7,8 @@ RSpec.describe "Google SERP Images" do
   let(:images_at_bottom_page_result) { JSON.parse(File.read("./spec/fixtures/images-not-at-top-of-page.json")) }
   let(:artwork_html) { File.read("./spec/fixtures/artist-artworks.html") }
   let(:artwork_result) { JSON.parse(File.read("./spec/fixtures/artist-artworks.json")) }
+  let(:rihanna_albums_html) { File.read("./spec/fixtures/rihanna-albums.html") }
+  let(:rihanna_albums_json) { JSON.parse(File.read("./spec/fixtures/rihanna-albums.json")) }
 
   it "extracts images data from Google SERP HTML" do
     expect(JSON.parse(extract(html))).to eq(result)
@@ -83,5 +85,18 @@ RSpec.describe "Google SERP Images" do
     result = JSON.parse(extract(html))
 
     expect(result.keys.first).to eq("images")
+  end
+
+  it "extracts Rihanna albums from Google SERP HTML" do
+    expect(JSON.parse(extract(rihanna_albums_html))).to eq(rihanna_albums_json)
+  end
+  it "extracts name, extensions array (date), and absolute Google link for Rihanna albums" do
+    result = JSON.parse(extract(rihanna_albums_html))
+    row = result["albums"][0]
+
+    expect(row["name"]).to eq("Anti")
+    expect(row["extensions"]).to eq(["2016"])
+    expect(row["link"]).to be_a(Array)
+    expect(row["link"].first).to start_with("https://www.google.com/search?")
   end
 end

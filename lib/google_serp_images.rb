@@ -11,9 +11,23 @@ def extract(html)
   results = []
   title = 'images'
   
-  search_results = doc.css('div[data-attrid^="kc:/"][data-md]:not([role="presentation"])')[0]
-  
-  if search_results.nil?
+  container = doc.at_css('div[data-attrid^="kc:/"][data-md]:not([role="presentation"])')
+
+  if container
+    # carousels with data attribute "kc:/"
+    title = carousel_title(container)
+
+    container.css('a').each do |a|
+      img = a.at_css('img[alt]')
+      next unless img
+      name = extract_name(a)
+
+      thumb = inline_thumb(img)
+      date = extract_year(a)
+
+      results << row(name, date, absolute(a["href"]), thumb)
+    end
+  else
     doc.xpath('//div[@jsname][.//img[@alt and starts-with(@src,"data:image")]]').each do |node|
       img_tag = node.at_css('img[alt]')
       a_tag = node.at_css("a")
@@ -24,23 +38,9 @@ def extract(html)
 
       results << row(name, nil, absolute(a_tag["href"]), thumb)
     end
-  else
-    # carousels with data attribute "kc:/"
-    title = carousel_title(search_results)
-
-    search_results.css('a').each do |a|
-      img = a.at_css('img[alt]')
-      next unless img
-      name = extract_name(a)
-
-      thumb = inline_thumb(img)
-      date = extract_year(a)
-
-      results << row(name, date, absolute(a["href"]), thumb)
-    end
   end
-
-  JSON.pretty_generate({ (title&.downcase || 'images') => results })
+  
+  JSON.pretty_generate({ title&.downcase => results })
 end
 
 private
