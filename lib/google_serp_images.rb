@@ -25,12 +25,13 @@ def extract(html)
       results << row(name, nil, absolute(a_tag["href"]), thumb)
     end
   else
+    # carousels with data attribute "kc:/"
     title = carousel_title(search_results)
 
     search_results.css('a').each do |a|
       img = a.at_css('img[alt]')
       next unless img
-      name = img["alt"]&.strip || a.text&.strip
+      name = extract_name(a)
 
       thumb = inline_thumb(img)
       date = extract_year(a)
@@ -71,8 +72,15 @@ def inline_thumb(img)
   nil
 end
 
+def extract_name(anchor)
+  heading = anchor.at_css('img[alt]').text&.strip
+
+  heading.empty? ? anchor.xpath('.//text()[normalize-space()]')[0].text : heading
+end
+
 def extract_year(anchor)
-  anchor.xpath('.//text()[normalize-space()]').map(&:text)[-1]
+expected_date_field = anchor.xpath('.//text()[normalize-space()]').map(&:text).join(' ')
+  expected_date_field[/\b\d{4}\b/]
 end
 
 def absolute(href)

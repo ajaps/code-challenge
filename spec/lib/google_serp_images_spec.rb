@@ -25,8 +25,6 @@ RSpec.describe "Google SERP Images" do
   end
 
   it "extracts artworks from Google SERPT HTML" do
-    result = JSON.parse(extract(artwork_html))["artworks"]
-
     expect(JSON.parse(extract(artwork_html))).to eq(artwork_result)
   end
 
@@ -73,5 +71,17 @@ RSpec.describe "Google SERP Images" do
     expect(row["link"].first).to eq("https://www.fodors.com/news/photos/20-must-see-art-museums-in-america")
 
     expect(JSON.parse(extract(images_at_bottom_page_html))).to eq(images_at_bottom_page_result)
+  end
+
+  it "uses the carousel title as the key in the output JSON" do
+    result = JSON.parse(extract(artwork_html))
+
+    expect(result.keys.first).to eq("artworks")
+  end
+
+  it "falls back to generic image blocks when no carousel exists" do
+    result = JSON.parse(extract(html))
+
+    expect(result.keys.first).to eq("images")
   end
 end
