@@ -9,25 +9,11 @@ def extract(html)
   doc  = Nokogiri::HTML(html)
 
   results = []
-
-  # title = doc.at_xpath('//div[@id="rcnt"]//*[@role="heading" and not(@data-attrid)]')&.text&.strip
-  # title = doc.at_css("title")&.text&.strip if title.nil? || title.empty?
-  title = ""
-
-  doc.css('div[data-attrid*="visual_artist:works"] a').each do |a|
-    img = a.at_css('img[alt]')
-    next unless img
-    name = img["alt"]&.strip
-    next if name.nil? || name.empty?
-
-    thumb = inline_thumb(img)
-    date = extract_year(a)
-
-    results << row(name, date, absolute(a["href"]), thumb)
-  end
-
-  if results.empty?
-    title = "images"
+  title = 'images'
+  
+  search_results = doc.css('div[data-attrid^="kc:/"][data-md]:not([role="presentation"])')[0]
+  
+  if search_results.nil?
     doc.xpath('//div[@jsname][.//img[@alt and starts-with(@src,"data:image")]]').each do |node|
       img_tag = node.at_css('img[alt]')
       a_tag = node.at_css("a")
@@ -39,13 +25,39 @@ def extract(html)
       results << row(name, nil, absolute(a_tag["href"]), thumb)
     end
   else
-    title = "artworks"
+    title = carousel_title(search_results)
+
+    search_results.css('a').each do |a|
+      img = a.at_css('img[alt]')
+      next unless img
+      name = img["alt"]&.strip || a.text&.strip
+
+      thumb = inline_thumb(img)
+      date = extract_year(a)
+
+      results << row(name, date, absolute(a["href"]), thumb)
+    end
   end
 
   JSON.pretty_generate({ (title&.downcase || 'images') => results })
 end
 
 private
+
+def carousel_title(node)
+  anc = node.at_xpath(%q{
+    ancestor::*[.//*[@role="heading" and @aria-level="2"]][1]
+  })
+  return anc&.at_xpath('.//*[@role="heading" and @aria-level="2"][1]')&.text&.strip&.downcase
+
+  h2 = node.at_xpath('.//h2').text.strip.downcase
+  return h2.text.strip.downcase if h2
+
+  role_heading = node.at_xpath('.//*[@role="heading" and @aria-level="2"]')
+  return role_heading.text.strip.downcase if role_heading
+
+  nil
+end
 
 def row(name, date, link, thumb)
   { name: name, extensions: [date].compact, link: [link].compact, thumbnail: [thumb].compact }
