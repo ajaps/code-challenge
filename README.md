@@ -29,4 +29,4 @@ The suggested time for this challenge is 4 hours. But, you can take your time an
 
 # How to run
  - $ `ruby main.rb path-to-html-file`
- - e.g. `ruby main.rb "spec/fixtures/artist-artworks.html"`
+ - e.g. `ruby main.rb "spec/fixtures/rihanna-albums.html"`

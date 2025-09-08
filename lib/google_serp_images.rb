@@ -14,7 +14,7 @@ def extract(html)
   container = doc.at_css('div[data-attrid^="kc:/"][data-md]:not([role="presentation"])')
 
   if container
-    # carousels with data attribute "kc:/"
+    # carousels with data attribute starting with "kc:/"
     title = carousel_title(container)
 
     container.css('a').each do |a|
