@@ -9,13 +9,13 @@ def extract(html)
   doc  = Nokogiri::HTML(html)
 
   results = []
-  title = 'images'
+  title = 'not-found'
   
   container = doc.at_css('div[data-attrid^="kc:/"][data-md]:not([role="presentation"])')
 
+  # carousels with data attribute starting with "kc:/"
   if container
-    # carousels with data attribute starting with "kc:/"
-    title = carousel_title(container)
+    title = carousel_title(container) # get title of the carousel section
 
     container.css('a').each do |a|
       img = a.at_css('img[alt]')
@@ -27,17 +27,6 @@ def extract(html)
 
       results << row(name, date, absolute(a["href"]), thumb)
     end
-  else
-    doc.xpath('//div[@jsname][.//img[@alt and starts-with(@src,"data:image")]]').each do |node|
-      img_tag = node.at_css('img[alt]')
-      a_tag = node.at_css("a")
-      thumb = inline_thumb(img_tag)
-      name = img_tag["alt"]&.strip
-
-      next if a_tag.nil? || name.empty?
-
-      results << row(name, nil, absolute(a_tag["href"]), thumb)
-    end
   end
   
   JSON.pretty_generate({ title&.downcase => results })
@@ -46,18 +35,8 @@ end
 private
 
 def carousel_title(node)
-  anc = node.at_xpath(%q{
-    ancestor::*[.//*[@role="heading" and @aria-level="2"]][1]
-  })
-  return anc&.at_xpath('.//*[@role="heading" and @aria-level="2"][1]')&.text&.strip&.downcase
-
-  h2 = node.at_xpath('.//h2').text.strip.downcase
-  return h2.text.strip.downcase if h2
-
-  role_heading = node.at_xpath('.//*[@role="heading" and @aria-level="2"]')
-  return role_heading.text.strip.downcase if role_heading
-
-  nil
+  anc = node.at_xpath(%q{ancestor::*[.//*[@role="heading"]][1]})
+  anc&.at_xpath('.//*[@role="heading"][1]')&.text&.strip&.downcase
 end
 
 def row(name, date, link, thumb)
@@ -65,21 +44,15 @@ def row(name, date, link, thumb)
 end
 
 def inline_thumb(img)
-  s = img["src"]
-  return s if s&.start_with?("data:image")
-  ds = img["data-src"]
-  return ds if ds&.start_with?("data:image")
-  nil
+  img["src"] if img["src"]&.start_with?("data:image/")
 end
 
 def extract_name(anchor)
-  heading = anchor.at_css('img[alt]').text&.strip
-
-  heading.empty? ? anchor.xpath('.//text()[normalize-space()]')[0].text : heading
+  anchor.xpath('.//text()[normalize-space()]')[0].text
 end
 
 def extract_year(anchor)
-expected_date_field = anchor.xpath('.//text()[normalize-space()]').map(&:text).join(' ')
+  expected_date_field = anchor.xpath('.//text()[normalize-space()]')[-1].text
   expected_date_field[/\b\d{4}\b/]
 end
 

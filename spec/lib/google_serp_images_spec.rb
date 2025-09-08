@@ -1,29 +1,21 @@
 require "./lib/google_serp_images"
 
 RSpec.describe "Google SERP Images" do
-  let(:html) { File.read("./spec/fixtures/other-kind-of-carrousel.html") }
-  let(:result) { JSON.parse(File.read("./spec/fixtures/other-kind-of-carrousel.json")) }
-  let(:images_at_bottom_page_html) { File.read("./spec/fixtures/images-not-at-top-of-page.html") }
-  let(:images_at_bottom_page_result) { JSON.parse(File.read("./spec/fixtures/images-not-at-top-of-page.json")) }
   let(:artwork_html) { File.read("./spec/fixtures/artist-artworks.html") }
   let(:artwork_result) { JSON.parse(File.read("./spec/fixtures/artist-artworks.json")) }
   let(:rihanna_albums_html) { File.read("./spec/fixtures/rihanna-albums.html") }
   let(:rihanna_albums_json) { JSON.parse(File.read("./spec/fixtures/rihanna-albums.json")) }
-
-  it "extracts images data from Google SERP HTML" do
-    expect(JSON.parse(extract(html))).to eq(result)
-  end
   
   it "does not make http requests" do
     expect(Net::HTTP).not_to receive(:get)
     
-    extract(html)
+    extract(artwork_html)
   end
 
   it "returns empty results when no images found" do
     empty_html = "<html><head><title>No Images</title></head><body><h1>No images here!</h1></body></html>"
     
-    expect(JSON.parse(extract(empty_html))).to eq({ "images" => [] })
+    expect(JSON.parse(extract(empty_html))).to eq({ "not-found" => [] })
   end
 
   it "extracts artworks from Google SERPT HTML" do
@@ -56,35 +48,17 @@ RSpec.describe "Google SERP Images" do
   end
 
   it "returns 'extensions' as empty array if no date found" do
-    result = JSON.parse(extract(html))
-    row = result["images"][0]
+    result = JSON.parse(extract(artwork_html))
+    row = result["artworks"][10]
 
-    expect(row["name"]).to eq("92,300+ Deep Ocean Fish Stock Photos, Pictures & Royalty ...")
+    expect(row["name"]).to eq("Sunflowers")
     expect(row["extensions"]).to eq([])
-  end
-
-  it "extracts images for SERP HTML where the images section is not at the top" do
-    result = JSON.parse(extract(images_at_bottom_page_html))
-    row = result["images"][0]
-
-    expect(row["name"]).to eq("Best Art Museums in the U.S.")
-    expect(row["thumbnail"]).to be_a(Array)
-    expect(row["link"]).to be_a(Array)
-    expect(row["link"].first).to eq("https://www.fodors.com/news/photos/20-must-see-art-museums-in-america")
-
-    expect(JSON.parse(extract(images_at_bottom_page_html))).to eq(images_at_bottom_page_result)
   end
 
   it "uses the carousel title as the key in the output JSON" do
     result = JSON.parse(extract(artwork_html))
 
     expect(result.keys.first).to eq("artworks")
-  end
-
-  it "falls back to generic image blocks when no carousel exists" do
-    result = JSON.parse(extract(html))
-
-    expect(result.keys.first).to eq("images")
   end
 
   it "extracts Rihanna albums from Google SERP HTML" do
